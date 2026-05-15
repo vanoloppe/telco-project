@@ -1,119 +1,99 @@
-# Telco Project
+# TELCO — Oracle XE Docker & schema
 
-## How to Set Up Your Repository
+This repository contains a ready-to-run Oracle XE setup (via Docker Compose) and the SQL needed to create the schema that exactly matches the provided CSV files.
 
-**WARNING**: This is a template project. Do not fork this repository.
+Files added:
+- `docker-compose.yml` — spins up Oracle XE and mounts initialization scripts.
+- `TABLE_CREATION_SCRIPTS.sql` — drops and creates tables matching the CSV headers and types.
+- `SOLUTIONS.sql` — Oracle-compatible queries that answer the functional requirements (each query includes a 3+ sentence explanation).
 
-Please follow the visual steps below to create and set up the project repository on your own GitHub profile.
+Quick start
+1. Start the database:
 
-1. Click the **"Use this template"** button at the top right of this page.
+```bash
+docker-compose up -d
+```
 
-<img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/547179ce-f2ac-4394-ad63-11e35a7daa74" />
+2. Wait for the container to finish initializing (the image runs scripts in `./oracle-init` and the mounted `TABLE_CREATION_SCRIPTS.sql`).
 
-<br><br>
+Connect with DBeaver
+- Host: `localhost`
+- Port: `1521`
+- Service: `XEPDB1`
+- Username: `SYSTEM`
+- Password: `Oracle18` (change in `docker-compose.yml` if you set a different password)
+- JDBC URL example: `jdbc:oracle:thin:@localhost:1521/XEPDB1`
 
-2. Select **"Create a new repository"** to generate your own public repository for this task.
+Using the supplied initialization scripts
+- The container runs any `.sql` files placed in `./oracle-init` or the mounted `TABLE_CREATION_SCRIPTS.sql` in `/opt/oracle/scripts/setup` at first startup. The included `TABLE_CREATION_SCRIPTS.sql` will create the three tables.
 
-<img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/a1893fef-731f-4c9a-bf68-79db6a39bea9" />
+Importing the CSVs with DBeaver
+1. After connecting, right-click the target table (for example `CUSTOMERS`) and choose *Import Data*.
+2. Choose the CSV file (for example `i2i datas/CUSTOMERS.csv`).
+3. Map columns exactly and for `SIGNUP_DATE` set the format to `dd/MM/yyyy` (the schema uses `DATE` and the scripts set `NLS_DATE_FORMAT = 'DD/MM/YYYY'`).
 
-<br><br>
+Running the provided queries
+- Open `SOLUTIONS.sql` in DBeaver or your SQL client and run each query. Each query includes an explanation in comments.
 
-3. Name your repository as **"telco-project"** and click the **"Create repository"** button.
+Re-running the schema creation
+- If you need to re-run the schema creation, stop and remove the container and the `oracle-data` volume, then start again:
 
-<img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/7fe03880-8d77-4fcd-a076-827aab2328e5" />
+```bash
+docker-compose down -v
+docker-compose up -d
+```
 
-<br><br>
+Notes
+- Change `ORACLE_PASSWORD` in `docker-compose.yml` before first run if you want a different password.
+- Service name `XEPDB1` is the default pluggable database used by the image.
+# TELCO Project — Oracle XE (Dockerized)
 
-Upload all of your solutions to `github.com/yourusername/telco-project`.
+Overview
+- This repository contains a Docker Compose configuration that runs Oracle XE and automatically seeds a `I2I` schema with telecom tables and sample data. Use the provided SQL file `SOLUTIONS.sql` to run the requested queries.
 
----
+Prerequisites
+- Docker and Docker Compose installed.
 
-## Overview
+Quick start
+1. Start the database:
 
-In this project, you will take on the role of a developer at **i2i Systems**, where you are tasked with fulfilling various team requests through database operations. 
+```bash
+docker-compose up -d
+```
 
-You will receive `.csv` files containing telecom-related data to use for answering the provided questions. Please organize your work as follows:
-* Save your SQL query solutions in a separate file (e.g., `SOLUTIONS.sql`).
-* Include your database table creation scripts, along with their respective indexes and constraints, in another separate file (e.g., `TABLE_CREATION_SCRIPTS.sql`).
+2. Follow logs until database is ready (first-time initialization runs the SQL in `./oracle-init`):
 
-You must **create your own repository using this template** and upload your work there. 
-Do **not** attempt to push changes directly to this repository or any of its original branches.
+```bash
+docker-compose logs -f oracle-xe
+```
 
----
+Connection details (for DBeaver or other clients)
+- Host: `localhost`
+- Port: `1521`
+- Service / SID: `XE`
+- Schema / User: `I2I`
+- Password: `I2I_PWD`
 
-## Operational Requirements
+SYS / DBA user (if needed)
+- Username: `SYS`
+- Password: `OraclePwd123`
+- Connect as: `SYSDBA`
 
-1. **Oracle XE Setup**
-  * Create a [Docker](https://www.docker.com/products/docker-desktop/) container running **Oracle XE**.  
-  * Ensure that the database is properly configured and accessible from your local machine.
+Notes
+- The `docker-compose.yml` mounts `./oracle-init` to `/opt/oracle/scripts/setup` inside the container. Files in that directory are executed automatically when the database starts for the first time.
+- The initialization script creates an `I2I` schema, DDL, indexes and inserts sample data so you can run the queries in `SOLUTIONS.sql` right away.
 
-2. **DBeaver Installation**
-  * Download and install [DBeaver](https://dbeaver.io/).  
-  * Establish a connection to your local Oracle XE instance using the DBeaver client.
+Reinitialize the DB
+- To remove data and re-run initialization (this deletes the persisted volume):
 
-3. **Data Import**
-  * Using the provided `.csv` files containing telecom data, design and **create the necessary tables** in Oracle XE. 
-  * **Import the data** from the `.csv` files into your newly created tables, ensuring the schema accurately reflects the provided dataset.
+```bash
+docker-compose down -v
+docker-compose up -d
+```
 
-4. **Bonus Tasks (Optional for Extra Points)**
-  * **Docker Compose & Reproducibility:** Provide a `docker-compose.yml` file to spin up the Oracle XE database environment easily. Include clear documentation in your repository (with screenshots) explaining the step-by-step process to reproduce your setup.
-  * **Automated Database Seeding:** Configure your Docker Compose setup to automatically run your database scripts (table creation) upon container initialization.
+Running the solutions
+- Open `SOLUTIONS.sql` in DBeaver or run it from a SQL client connected as `I2I`.
+- `SOLUTIONS.sql` begins with `ALTER SESSION SET CURRENT_SCHEMA = I2I;` so it runs cleanly against the seeded schema.
 
----
-
-## Functional Requirements
-
-You must write SQL queries to address the scenarios listed below. For each query, include comments explaining your approach in **at least three sentences**. Submissions with missing answers or explanations shorter than the required length will **not be evaluated** and will receive **0 points**.
-
----
-
-### 1. Tariff-Based Customer Queries
-
-**1.1** List the customers who are subscribed to the 'Kobiye Destek' tariff.  
-**1.2** Find the newest customer who subscribed to this tariff.
-
----
-
-### 2. Tariff Distribution
-
-**2.1** Find the distribution of tariffs among the customers.
-
----
-
-### 3. Customer Signup Analysis
-
-**3.1** Identify the earliest customers to sign up.  
-*(Hint: The earliest customers might not necessarily have the lowest IDs.)*
-
-**3.2** Find the distribution of these earliest customers across different cities, including the total count for each city.
-
----
-
-### 4. Missing Monthly Records
-
-**4.1** Every customer has a monthly fee, and the dataset contains this month's usage values. However, an insertion error occurred, and some customers' monthly records are missing. Identify the IDs of these missing customers.
-
-**4.2** Find the distribution of these missing customers across different cities.
-
----
-
-### 5. Usage Analysis
-
-**5.1** Find the customers who have used at least 75% of their data limit.  
-**5.2** Identify the customers who have completely exhausted all of their package limits (data, minutes, and SMS).
-
----
-
-### 6. Payment Analysis
-
-**6.1** Find the customers who have unpaid fees.  
-**6.2** Find the distribution of all payment statuses across the different tariffs.
-
----
-
-## Notes
-
-* You have the creative freedom to design the database schema as you see fit, based on the provided dataset.
-* Pay close attention to applying the appropriate data types and constraints when creating your tables.
-* You may use DBeaver or SQL*Plus to handle the `.csv` data imports into Oracle XE.
-* Thoroughly test each query and document both the SQL statement and its resulting output in your submission.
+Support
+- If the container doesn't start, check `docker-compose logs oracle-xe` and ensure ports are free. If re-initializing, remove the `oracle-data` volume first (see above).
